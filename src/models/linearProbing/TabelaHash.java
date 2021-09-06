@@ -1,36 +1,38 @@
 package models.linearProbing;
 
 import models.Chave;
+import models.Primo;
 
-public class TabelaHashLinearProbingString {
+public class TabelaHash {
 
 	private int tamanho;
 	private int qtdDisponivel;
 	private int[][] tabela;
-	private String[] tabelaString;
 
-	public TabelaHashLinearProbingString(int tamanho) {
+	public TabelaHash(int tamanho) throws Exception {
+		if (!Primo.get().verificar(tamanho)) {
+			throw new Exception("O tamanho precisa ser um número primo");
+		}
 		this.tamanho = tamanho;
 		this.qtdDisponivel = tamanho;
 		this.tabela = new int[tamanho][2];
-		this.tabelaString = new String[tamanho];
 	}
 
-	public void inserir(String valorString) {
+	public int inserir(int valor) {
 
-		int valor = Chave.getInstancia().gerarCodigoASCII(valorString);
-
-		if (buscar(valorString)) {
-			System.out.println(valorString + " já inserido!  " + valor);
-			return;
-		}
 		if (qtdDisponivel == 0) {
 			System.out.println("Tabela cheia! " + valor + " não foi inserido.");
-			return;
+			return -1;
+		}
+		if (buscar(valor) != -1) {
+			System.out.println(valor + " já inserido!");
+			return -2;
 		}
 
 		int indice = Chave.getInstancia().gerarChave(valor, tamanho);
 		int pesquisa = tabela.length;
+
+		System.out.println("h(" + valor + ") = " + valor + " % " + tamanho + " = " + indice);
 
 		int i = indice;
 		do {
@@ -38,7 +40,6 @@ public class TabelaHashLinearProbingString {
 
 				tabela[i][0] = valor;
 				tabela[i][1] = indice;
-				tabelaString[i] = valorString;
 				qtdDisponivel--;
 				break;
 			}
@@ -50,18 +51,17 @@ public class TabelaHashLinearProbingString {
 				i++;
 			}
 		} while (i < pesquisa);
+		return i;
 	}
 
-	public boolean buscar(String valorString) {
-
-		int valor = Chave.getInstancia().gerarCodigoASCII(valorString);
+	public int buscar(int valor) {
 		int indice = Chave.getInstancia().gerarChave(valor, tamanho);
 		int pesquisa = tabela.length;
 
 		int i = indice;
 		do {
 			if (tabela[i][0] == valor) {
-				return true;
+				return i;
 			}
 
 			if (i == tabela.length - 1 && tabela[i][0] != 0) {
@@ -72,56 +72,36 @@ public class TabelaHashLinearProbingString {
 			}
 		} while (i < pesquisa);
 
-		return false;
+		return -1;
 	}
 
-	public void remover(String valorString) {
+	public int[] remover(int valor) {
 
-		int valor = Chave.getInstancia().gerarCodigoASCII(valorString);
-
-		if (!buscar(valorString)) {
+		int posicaoValor = buscar(valor);
+		if (posicaoValor == -1) {
 			System.out.println(valor + " não foi encontrado!");
-			return;
+			return new int[0];
 		}
 
 		int indice = Chave.getInstancia().gerarChave(valor, tamanho);
 		int pesquisa = tabela.length;
-
-		/* passo 1 - identificar a posição do valor na tabela */
-		int posicaoValor = 0;
-		int j = indice;
+		int anterior = indice;
+		boolean liberado = false;
+		int i = indice;
 		do {
-			if (tabela[j][0] == valor) {
-				posicaoValor = j;
+
+			if (tabela[i][0] == valor && tabela[i][1] == indice) {
+				anterior = i;
+				liberado = true;
 			}
-
-			if (j == tabela.length - 1 && tabela[j][0] != 0) {
-				j = 0;
-				pesquisa = indice;
-			} else {
-				j++;
-			}
-		} while (j < pesquisa);
-
-		/* passo 2 - excluir elemento e reorganizar os elementos com mesmo indice */
-		pesquisa = tabela.length;
-
-		int anterior = posicaoValor;
-
-		int i = posicaoValor == tabela.length - 1 && tabela[posicaoValor][1] != indice ? 0 : posicaoValor;
-		do {
-			if (tabela[i][0] != 0 && tabela[i][1] == indice) {
+			if (liberado && tabela[i][0] != 0 && tabela[i][1] == indice) {
 
 				tabela[anterior][0] = tabela[i][0];
 				tabela[anterior][1] = tabela[i][1];
-				tabela[i][0] = 0;
-				tabela[i][1] = 0;
-
-				tabelaString[anterior] = tabelaString[i];
-				tabelaString[i] = null;
 				anterior = i;
 			}
-			if (i == tabela.length - 1 && tabela[i][0] != 0) {
+
+			if (i == tabela.length - 1) {
 				i = 0;
 				pesquisa = indice;
 			} else {
@@ -129,12 +109,12 @@ public class TabelaHashLinearProbingString {
 			}
 		} while (i < pesquisa);
 
-		/*
-		 * passo 3 - verificar se tem algum outro elemento fora da sua posição original
-		 */
-
+		tabela[anterior][0] = 0;
+		tabela[anterior][1] = 0;
+		
+		qtdDisponivel++;
+		
 		pesquisa = tabela.length;
-
 		int k = indice;
 		do {
 			if (k != tabela[k][1] && 0 != tabela[k][0] && tabela[tabela[k][1]][0] == 0) {
@@ -151,15 +131,27 @@ public class TabelaHashLinearProbingString {
 				k++;
 			}
 		} while (k < pesquisa);
+
+		int[] indices = new int[tamanho];
+		for (int l = 0; l < tamanho; l++) {
+			indices[l] = tabela[l][0];
+		}
+		return indices;
 	}
 
 	@Override
 	public String toString() {
-		String str = "mod\t| value\t| indice\n";
+
+		String str = "--------------------------\n";
+		str += "mod\t| value\t| indice\n";
+		str += "--------------------------\n";
 
 		for (int j = 0; j < tabela.length; j++) {
-			str += j + "\t| " + tabela[j][0] + "\t| " + tabela[j][1] + "\t\t-> "
-					+ (tabelaString[j] == null ? "" : tabelaString[j]) + "\n";
+			if (tabela[j][0] != 0) {
+				str += j + "\t| " + tabela[j][0] + "\t| " + tabela[j][1] + "\n";
+			} else {
+				str += j + "\t| \t| \n";
+			}
 		}
 		return str;
 	}

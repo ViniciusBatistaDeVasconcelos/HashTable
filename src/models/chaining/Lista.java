@@ -1,4 +1,4 @@
-package models;
+package models.chaining;
 
 public class Lista {
 

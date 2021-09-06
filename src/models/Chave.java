@@ -23,6 +23,17 @@ public class Chave {
 		return valorNumerico % tamanho;
 	}
 
+	public int gerarChaveSecundaria(int valor) {
+		return 7 - (valor % 7);
+	}
+
+	public int potencia(int base, int expoente) {
+		int resultado = 1;
+		for (int i = 1; i <= expoente; i++)
+			resultado *= base;
+		return resultado;
+	}
+
 	public int gerarCodigoASCII(String valor) {
 		char[] caracteres = new char[valor.length()];
 		int valorNumerico = 0;
@@ -33,4 +44,5 @@ public class Chave {
 		}
 		return valorNumerico;
 	}
+
 }
